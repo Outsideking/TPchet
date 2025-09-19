@@ -1,39 +1,35 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from "recharts";
 
-export default function Admin() {
-  const [translations, setTranslations] = useState([]);
+export default function AdminDashboard() {
   const [payments, setPayments] = useState([]);
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
-    axios.get("http://localhost:8000/admin/translations").then(res => setTranslations(res.data));
-    axios.get("http://localhost:8000/admin/payments").then(res => setPayments(res.data));
+    const fetchData = async () => {
+      const resPayments = await axios.get("https://yourdomain.com/api/admin/payments");
+      setPayments(resPayments.data);
+
+      const resUsers = await axios.get("https://yourdomain.com/api/admin/users");
+      setUsers(resUsers.data);
+    };
+    fetchData();
   }, []);
 
   return (
     <div className="p-10">
-      <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-
-      <h2 className="mt-6 text-xl">Translations Over Time</h2>
-      <LineChart width={800} height={300} data={translations}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="date" />
-        <YAxis />
-        <Tooltip />
-        <Legend />
-        <Line type="monotone" dataKey="count" stroke="#8884d8" />
-      </LineChart>
-
-      <h2 className="mt-6 text-xl">Payments</h2>
-      <BarChart width={800} height={300} data={payments}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="date" />
-        <YAxis />
-        <Tooltip />
-        <Legend />
-        <Bar dataKey="amount" fill="#82ca9d" />
-      </BarChart>
+      <h1 className="text-4xl font-bold mb-6">Admin Dashboard</h1>
+      <h2 className="text-2xl font-bold mb-2">Payments</h2>
+      <table className="min-w-full mb-8">
+        <thead>
+          <tr><th>User</th><th>Amount</th><th>Status</th><th>Date</th></tr>
+        </thead>
+        <tbody>{payments.map(p => (
+          <tr key={p.id}><td>{p.user_email}</td><td>{p.amount} {p.currency}</td><td>{p.status}</td><td>{p.date}</td></tr>
+        ))}</tbody>
+      </table>
+      <h2 className="text-2xl font-bold mb-2">Users & API Keys</h2>
+      <ul>{users.map(u => <li key={u.id}>{u.email} - Keys: {u.api_keys.join(", ")}</li>)}</ul>
     </div>
-  )
-            }
+  );
+    }
