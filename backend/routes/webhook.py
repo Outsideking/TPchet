@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
-import stripe
-import os
+import stripe, os
 from db.database import get_db
 from sqlalchemy.orm import Session
 from models.payment import Payment
@@ -16,7 +15,6 @@ WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
-
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, WEBHOOK_SECRET)
     except ValueError:
@@ -27,19 +25,16 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         customer_email = session.get('customer_email')
-        amount_total = session.get('amount_total') / 100  # USD
-        system_revenue = amount_total * 0.3  # เก็บ 30%
+        amount_total = session.get('amount_total') / 100
+        system_revenue = amount_total * 0.3
 
-        # หา user จาก email
         user = db.query(User).filter(User.email==customer_email).first()
         if not user:
-            # สร้าง user ถ้าไม่เจอ
             user = User(email=customer_email, hashed_password="stripe_user")
             db.add(user)
             db.commit()
             db.refresh(user)
 
-        # บันทึก payment
         payment_record = Payment(
             user_id=user.id,
             amount=system_revenue,
@@ -49,7 +44,6 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         db.add(payment_record)
         db.commit()
 
-        # สร้าง API Key
         new_key = str(uuid4())
         api_key = APIKey(user_id=user.id, key=new_key)
         db.add(api_key)
