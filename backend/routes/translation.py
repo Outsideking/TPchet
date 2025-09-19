@@ -1,29 +1,15 @@
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from models.api_key import APIKey
 from db.database import get_db
-from models.translation import Translation
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 
-class TranslateRequest(BaseModel):
-    user_id: int
-    text: str
-    source_lang: str
-    target_lang: str
-
 @router.post("/")
-def translate(req: TranslateRequest, db: Session = Depends(get_db)):
-    # ตัวอย่างแปลง่าย ๆ (mock)
-    result = f"{req.text} translated to {req.target_lang}"
-    translation_record = Translation(
-        user_id=req.user_id,
-        source_text=req.text,
-        translated_text=result,
-        source_lang=req.source_lang,
-        target_lang=req.target_lang
-    )
-    db.add(translation_record)
-    db.commit()
-    db.refresh(translation_record)
-    return {"translated_text": result}
+def translate(text: str, target_lang: str, db: Session = Depends(get_db), api_key: str = None):
+    key = db.query(APIKey).filter(APIKey.key==api_key).first()
+    if not key:
+        return {"error": "Invalid API Key"}
+    # ตัวอย่าง translation
+    translated_text = text[::-1]  # placeholder แปลกลับข้อความ
+    return {"translated": translated_text}
